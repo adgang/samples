@@ -77,8 +77,8 @@ func (this Attribute) UpdateDb() {
 
 }
 
-	var SingleAttributes []string = []string {"hall", "a/c", "fridge", "refrigerator", "parking", "generator", "invertor", "cupboards", "maintenance", "tv", "beds", "lift", "floor" }
-	var CompoundAttributes []string = []string {"modular kitchen"}
+	var SingleAttributes []string = []string {"hall", "a/c", "fridge", "refrigerator", "parking", "generator", "inverter", "cupboards", "maintenance", "tv", "beds", "lift", "floor", "pool", "interiors", "furniture", "lawn" }
+	var CompoundAttributes []string = []string {"modular kitchen", "swimming pool"}
 
 func init() {
 	Db = ConnectDB()
@@ -91,13 +91,20 @@ const archiveSize = 20
 var archive = list.New()
 
 // NewArchive saves new event to archive list.
-func NewArchive(event Event) {
+func NewArchive(event Event) uint {
 	if archive.Len() >= archiveSize {
 		archive.Remove(archive.Front())
 	}
 	archive.PushBack(event)
 
 	Db.Create(&event)
+	return event.Id
+}
+
+func GetEvent(id uint) Event {
+	var event Event
+	Db.Where("Id = ?", id).First(&event)
+	return event
 }
 
 // GetEvents returns all events after lastReceived.

@@ -88,15 +88,27 @@ func chatroom() {
 			}
 
 			broadcastWebSocket(event)
-			models.NewArchive(event)
+			chat_id := models.NewArchive(event)
 
 			if event.Type == models.EVENT_MESSAGE {
+				flip := false
 				beego.Info("Message from", event.User, ";Content:", event.Content)
+				inputFile := "/tmp/output.txt"
+
 				if (event.User == "seller") {
-					inputFile := "/tmp/output.txt"
+					content := strings.ToLower(event.Content)
+					if (content == "yes" || content == "no") {
+							// TODO: Handle case where the previous event is a non-message event
+							past_event := models.GetEvent(chat_id - 1)
+							fmt.Printf("Past Event: %v\n", past_event)
+							event = past_event
+							if (content == "no") {
+								flip = true
+							}
+					}
 					writeToFile(event, inputFile)
 					out := analyser.AnalyseDependencies(inputFile)
-					updateAttributes(out)
+					updateAttributes(out, flip)
 				}
 			}
 		case unsub := <-unsubscribe:
@@ -117,7 +129,7 @@ func chatroom() {
 	}
 }
 
-func updateAttributes(stdout string) {
+func updateAttributes(stdout string, flip bool) {
 	li := list.New()
 	deps := strings.Split(stdout, "\n\n")[2]
 	fmt.Printf("%v\n", deps)
@@ -138,6 +150,9 @@ func updateAttributes(stdout string) {
 		known, presence := isAttributePresent(li, attr)
 		fmt.Printf("Presence of %v: %v %v\n", attr, known, presence)
 		if known {
+			if (flip) {
+				presence = !presence
+			}
 			models.Attribute{0, attr, known, presence, "", time.Now().Unix(), time.Now().Unix()}.UpdateDb()
 		}
 	}
